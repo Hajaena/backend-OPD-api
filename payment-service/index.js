@@ -1,49 +1,88 @@
 const express = require('express');
+const compression = require('compression');
 const axios = require('axios');
+const Joi = require('joi');
 
 const app = express();
 const PORT = 3002;
 
-app.use(express.json());
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
 
-const payments = [];
+const payments = new Map();
+const axiosInstance = axios.create({
+  timeout: 5000,
+  httpAgent: { keepAlive: true },
+  httpsAgent: { keepAlive: true }
+});
+
+const retryRequest = async (fn, maxRetries = 2) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise(r => setTimeout(r, 100 * Math.pow(2, i)));
+    }
+  }
+};
+
+const validatePayment = (data) => {
+  const schema = Joi.object({
+    orderId: Joi.string().required(),
+    customerId: Joi.string().required(),
+    amount: Joi.number().positive().required()
+  });
+  return schema.validate(data);
+};
 
 app.post('/api/payments', async (req, res) => {
-  const { orderId, customerId, amount } = req.body;
+  const { error, value } = validatePayment(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  const { orderId, customerId, amount } = value;
+  const paymentId = `PAY-${Date.now()}`;
 
   const payment = {
-    id: `PAY-${Date.now()}`,
+    id: paymentId,
     orderId,
     customerId,
     amount,
     status: 'PROCESSING',
-    createdAt: new Date()
+    createdAt: Date.now()
   };
 
-  payments.push(payment);
+  payments.set(paymentId, payment);
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  setImmediate(async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      payment.status = 'COMPLETED';
+      payment.transactionId = `TXN-${Date.now()}`;
 
-  payment.status = 'COMPLETED';
-  payment.transactionId = `TXN-${Date.now()}`;
+      await retryRequest(() =>
+        axiosInstance.put(`http://localhost:3001/api/orders/${orderId}/status`, {
+          status: 'PAID'
+        })
+      ).catch(() => {});
 
-  try {
-    await axios.put(`http://localhost:3001/api/orders/${orderId}/status`, {
-      status: 'PAID'
-    });
-  } catch (error) {
-    console.error('Erreur mise à jour commande:', error.message);
-  }
+    } catch (err) {
+      payment.status = 'FAILED';
+    }
+  });
 
   res.status(201).json(payment);
 });
 
 app.get('/api/payments', (req, res) => {
-  res.json(payments);
+  const paymentsArray = Array.from(payments.values());
+  res.json(paymentsArray);
 });
 
 app.get('/api/payments/:orderId', (req, res) => {
-  const payment = payments.find(p => p.orderId === req.params.orderId);
+  const payment = Array.from(payments.values()).find(p => p.orderId === req.params.orderId);
   if (!payment) {
     return res.status(404).json({ error: 'Paiement non trouvé' });
   }
