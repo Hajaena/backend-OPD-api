@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "Order Management System",
+    "description": "API REST pour le système de gestion de commandes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Order Service",
+      "item": [
+        {
+          "name": "Créer une commande",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3001/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"customerId\": \"CUST-001\", \"items\": [{\"name\": \"Laptop\", \"qty\": 1, \"price\": 1000}], \"totalAmount\": 1000}"
+            }
+          }
+        },
+        {
+          "name": "Lister toutes les commandes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3001/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Récupérer une commande",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3001/api/orders/{{orderId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["api", "orders", "{{orderId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delivery Service",
+      "item": [
+        {
+          "name": "Créer une livraison",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3003/api/deliveries",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["api", "deliveries"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"orderId\": \"{{orderId}}\", \"customerId\": \"CUST-001\", \"address\": \"123 Rue Main, Antananarivo\"}"
+            }
+          }
+        },
+        {
+          "name": "Lister les livraisons",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3003/api/deliveries",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["api", "deliveries"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "item": [
+        {
+          "name": "Lister les paiements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3002/api/payments",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "payments"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
